@@ -6,16 +6,22 @@ use crate::types::{SessionInfo, shell_escape_single_quote};
 
 /// Truncate a prompt at word boundaries, appending "..." if truncated.
 pub fn truncate_prompt(prompt: &str, max_chars: usize) -> String {
-    if prompt.len() <= max_chars {
+    let char_count = prompt.chars().count();
+    if char_count <= max_chars {
         return prompt.to_string();
     }
     // Find last space before the limit (leaving room for "...")
     let limit = max_chars.saturating_sub(3);
-    if let Some(pos) = prompt[..limit].rfind(' ') {
+    let byte_limit = prompt
+        .char_indices()
+        .nth(limit)
+        .map(|(i, _)| i)
+        .unwrap_or(prompt.len());
+    if let Some(pos) = prompt[..byte_limit].rfind(' ') {
         format!("{}...", &prompt[..pos])
     } else {
         // No space found — hard cut
-        format!("{}...", &prompt[..limit])
+        format!("{}...", &prompt[..byte_limit])
     }
 }
 
@@ -828,5 +834,41 @@ mod tests {
         assert_eq!(parsed.len(), 2);
         assert_eq!(parsed[0]["index"], 0);
         assert_eq!(parsed[1]["index"], 1);
+    }
+
+    // --- truncate_prompt UTF-8 safety ---
+
+    #[test]
+    fn truncate_prompt_with_emoji() {
+        // Each emoji is 4 bytes but 1 char — should not panic
+        let s = "Hello 🌍 world this is a test with emojis 🎉 and more text here to go over";
+        let result = truncate_prompt(s, 30);
+        assert!(!result.is_empty());
+        assert!(result.chars().count() <= 30);
+    }
+
+    #[test]
+    fn truncate_prompt_with_cjk() {
+        // CJK chars are 3 bytes each
+        let s = "这是一个很长的中文提示词需要被截断处理才能正常显示在终端上面不会超出限制";
+        let result = truncate_prompt(s, 15);
+        assert!(!result.is_empty());
+        assert!(result.chars().count() <= 15);
+        assert!(result.ends_with("..."));
+    }
+
+    #[test]
+    fn truncate_prompt_with_accented() {
+        let s = "Résumé café naïve über straße coöperate più für résumé café naïve über straße";
+        let result = truncate_prompt(s, 30);
+        assert!(!result.is_empty());
+        assert!(result.chars().count() <= 30);
+    }
+
+    #[test]
+    fn truncate_prompt_mixed_width_no_panic() {
+        let s = "Fix 🐛 in café résumé 日本語テスト end";
+        let result = truncate_prompt(s, 20);
+        assert!(!result.is_empty());
     }
 }
