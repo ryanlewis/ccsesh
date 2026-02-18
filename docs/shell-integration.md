@@ -36,6 +36,23 @@ Add to `~/.zshrc`:
 eval "$(ccsesh init zsh)"
 ```
 
+### Quick Setup
+
+One-liners you can paste directly into your terminal:
+
+```sh
+# Fish
+mkdir -p ~/.config/fish/conf.d && echo 'ccsesh init fish | source' >> ~/.config/fish/conf.d/ccsesh.fish
+
+# Bash
+echo 'eval "$(ccsesh init bash)"' >> ~/.bashrc
+
+# Zsh
+echo 'eval "$(ccsesh init zsh)"' >> ~/.zshrc
+```
+
+Restart your shell afterwards, or source the relevant config file.
+
 ## How the Wrapper Works
 
 The shell function intercepts resume commands (`ccsesh <number>`) so it
