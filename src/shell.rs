@@ -33,10 +33,11 @@ pub fn print_exec_protocol(session: &SessionInfo) -> anyhow::Result<()> {
 
 /// Prints human-readable resume instructions (fallback when --shell-mode is not set).
 pub fn print_resume_instructions(session: &SessionInfo) {
+    let escaped_dir = shell_escape_single_quote(&session.project_dir_display);
     println!("To resume this session, run:");
     println!(
         "  cd {} && claude --resume {}",
-        session.project_dir_display, session.session_id
+        escaped_dir, session.session_id
     );
 }
 
