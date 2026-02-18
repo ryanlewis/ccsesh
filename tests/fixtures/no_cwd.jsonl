@@ -1,0 +1,5 @@
+{"type":"system","sessionId":"9f8e7d6c-5b4a-4392-8170-fedcba098765","timestamp":"2026-02-17T14:00:00.000Z","message":{"content":"System initialization complete."}}
+{"type":"user","sessionId":"9f8e7d6c-5b4a-4392-8170-fedcba098765","timestamp":"2026-02-17T14:00:03.400Z","message":{"content":"Explain how async/await works in Rust"}}
+{"type":"assistant","sessionId":"9f8e7d6c-5b4a-4392-8170-fedcba098765","timestamp":"2026-02-17T14:00:11.700Z","slug":"deep-ocean-wave","message":{"content":"Async/await in Rust is built on the Future trait..."}}
+{"type":"user","sessionId":"9f8e7d6c-5b4a-4392-8170-fedcba098765","timestamp":"2026-02-17T14:02:45.200Z","slug":"deep-ocean-wave","message":{"content":"Show me an example with tokio"}}
+{"type":"assistant","sessionId":"9f8e7d6c-5b4a-4392-8170-fedcba098765","timestamp":"2026-02-17T14:02:53.500Z","slug":"deep-ocean-wave","message":{"content":"Here's a tokio example..."}}

@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cargo fmt --quiet 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "If the file being written is in tests/fixtures/ and is a new file (not editing existing), remind the user to add a UUID mapping in fixture_to_uuid() in tests/integration.rs and use fixture_candidate() in parse.rs unit tests. Otherwise, approve silently."
+          }
+        ]
+      }
+    ]
+  }
+}

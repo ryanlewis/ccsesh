@@ -1,0 +1,6 @@
+{"type":"system","cwd":"/Users/testuser/dev/myproject","sessionId":"eb53d999-8692-42ce-a376-4f82206a086d","timestamp":"2026-02-17T22:24:15.325Z","message":{"content":"System initialization complete."}}
+{"type":"user","cwd":"/Users/testuser/dev/myproject","sessionId":"eb53d999-8692-42ce-a376-4f82206a086d","timestamp":"2026-02-17T22:24:18.102Z","message":{"content":"Design technical approach for ccsesh"}}
+{"type":"assistant","cwd":"/Users/testuser/dev/myproject","sessionId":"eb53d999-8692-42ce-a376-4f82206a086d","timestamp":"2026-02-17T22:24:25.410Z","slug":"woolly-conjuring-journal","message":{"content":"I'll design a technical approach for ccsesh. Let me start by analyzing the requirements."}}
+{"type":"summary","summary":"Discussion about technical design for ccsesh CLI tool","leafUuid":"a1b2c3d4-e5f6-7890-abcd-ef1234567890"}
+{"type":"user","cwd":"/Users/testuser/dev/myproject","sessionId":"eb53d999-8692-42ce-a376-4f82206a086d","timestamp":"2026-02-17T22:30:44.891Z","slug":"woolly-conjuring-journal","message":{"content":"Now implement the session discovery module"}}
+{"type":"assistant","cwd":"/Users/testuser/dev/myproject","sessionId":"eb53d999-8692-42ce-a376-4f82206a086d","timestamp":"2026-02-17T22:30:52.003Z","slug":"woolly-conjuring-journal","message":{"content":"I'll implement the session discovery module using two nested read_dir calls."}}

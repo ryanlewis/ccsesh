@@ -1,0 +1,5 @@
+{"type":"system","cwd":"/Users/testuser/dev/api","sessionId":"c4a7e2b1-3f58-4d9c-b6e1-8a2d5f7c9e03","timestamp":"2026-02-17T20:10:05.200Z","message":{"content":"System initialization complete."}}
+{"type":"user","cwd":"/Users/testuser/dev/api","sessionId":"c4a7e2b1-3f58-4d9c-b6e1-8a2d5f7c9e03","timestamp":"2026-02-17T20:10:08.441Z","isMeta":true,"message":{"content":"<local-command-caveat>Running local command: /compact</local-command-caveat>"}}
+{"type":"assistant","cwd":"/Users/testuser/dev/api","sessionId":"c4a7e2b1-3f58-4d9c-b6e1-8a2d5f7c9e03","timestamp":"2026-02-17T20:10:12.330Z","message":{"content":"Compacting conversation context..."}}
+{"type":"user","cwd":"/Users/testuser/dev/api","sessionId":"c4a7e2b1-3f58-4d9c-b6e1-8a2d5f7c9e03","timestamp":"2026-02-17T20:11:01.556Z","isMeta":true,"message":{"content":"<local-command-caveat>Context compacted successfully</local-command-caveat>"}}
+{"type":"assistant","cwd":"/Users/testuser/dev/api","sessionId":"c4a7e2b1-3f58-4d9c-b6e1-8a2d5f7c9e03","timestamp":"2026-02-17T20:11:05.789Z","slug":"gentle-morning-breeze","message":{"content":"Context has been compacted."}}
