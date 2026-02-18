@@ -1,0 +1,2 @@
+{"type":"system","cwd":"/tmp/safe\nmalicious_command","sessionId":"eb53d999-8692-42ce-a376-4f82206a086d","timestamp":"2026-02-17T22:24:15.325Z","message":{"content":"System initialization complete."}}
+{"type":"user","cwd":"/tmp/safe\nmalicious_command","sessionId":"eb53d999-8692-42ce-a376-4f82206a086d","timestamp":"2026-02-17T22:24:18.102Z","message":{"content":"Test prompt with newline cwd"}}

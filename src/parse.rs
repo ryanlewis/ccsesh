@@ -37,6 +37,9 @@ pub fn parse_session(candidate: &SessionCandidate, home_dir: &str) -> Result<Ses
 
         if cwd.is_none()
             && let Some(ref c) = parsed.cwd
+            && !c.contains('\n')
+            && !c.contains('\r')
+            && !c.contains('\0')
         {
             cwd = Some(c.clone());
         }
@@ -656,6 +659,19 @@ mod tests {
         assert_eq!(
             info.first_prompt.as_deref(),
             Some("Design technical approach for ccsesh")
+        );
+    }
+
+    #[test]
+    fn parse_cwd_with_newline_is_rejected() {
+        let candidate = fixture_candidate("newline_cwd.jsonl");
+        let info = parse_session(&candidate, "/tmp").unwrap();
+        // cwd containing \n should be rejected, falling back to empty
+        assert_eq!(info.project_dir, PathBuf::from(""));
+        // The prompt should still be extracted
+        assert_eq!(
+            info.first_prompt.as_deref(),
+            Some("Test prompt with newline cwd")
         );
     }
 
