@@ -10,14 +10,14 @@ ccsesh is a Rust CLI that lists and resumes recent Claude Code sessions by readi
 
 ```sh
 cargo build                          # Build debug binary
-cargo test                           # Run all 144 tests (116 unit + 28 integration)
+cargo test                           # Run all tests (unit + integration)
 cargo test --lib                     # Unit tests only
 cargo test --test integration        # Integration tests only
 cargo test <test_name>               # Run a single test by name
 cargo install --path .               # Install to ~/.cargo/bin/
 ```
 
-Uses Rust 2024 edition. No linter or formatter configured beyond `rustc` defaults. Run `cargo fmt` and `cargo clippy` manually if desired.
+Uses Rust 2024 edition. CI enforces `cargo fmt --check` and `cargo clippy -- -D warnings` — run both before pushing.
 
 Run locally without installing:
 ```sh
@@ -61,3 +61,17 @@ main.rs  →  discover.rs  →  parse.rs  →  display.rs
 - Parse unit tests copy fixtures to temp files with UUID filenames since `parse_session` validates filename format.
 
 **Adding a new fixture:** Create the `.jsonl` file in `tests/fixtures/`, then add a UUID mapping in `fixture_to_uuid()` in both `tests/integration.rs` and use `fixture_candidate()` helper in `parse.rs` unit tests. The filename must be a valid lowercase UUID.
+
+## Commit Conventions
+
+Use [Conventional Commits](https://www.conventionalcommits.org/): `type: description`. Common types: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`. Keep the subject line under 72 characters, imperative mood.
+
+## Distribution
+
+See `docs/distribution.md` for full setup guide. Release workflow: bump version in Cargo.toml, tag `vX.Y.Z`, push — CI builds all targets and updates Homebrew tap.
+
+- `.github/workflows/ci.yml` — lint + test on push/PR
+- `.github/workflows/release.yml` — build + release on `v*` tags
+- `install.sh` / `install.ps1` — curl/irm-pipeable install scripts
+- `homebrew-tap/` — Homebrew formula (copied to separate `homebrew-ccsesh` repo)
+- `winget/` — winget manifest files (submitted to microsoft/winget-pkgs)
