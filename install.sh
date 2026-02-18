@@ -116,27 +116,31 @@ download_file "${_url}" "${_tmpdir}/${_archive}" \
     || error "download failed — check that release ${_version} exists at github.com/${REPO}/releases"
 
 # --- Checksum verification ---
-_checksum_url="https://github.com/${REPO}/releases/download/${_version}/${_archive}.sha256"
-if _checksum_content=$(download "${_checksum_url}" 2>/dev/null); then
-    _expected=$(printf '%s' "${_checksum_content}" | awk '{print $1}')
-    if [ -n "${_expected}" ]; then
-        _actual=""
-        if command -v sha256sum >/dev/null 2>&1; then
-            _actual=$(sha256sum "${_tmpdir}/${_archive}" | awk '{print $1}')
-        elif command -v shasum >/dev/null 2>&1; then
-            _actual=$(shasum -a 256 "${_tmpdir}/${_archive}" | awk '{print $1}')
-        else
-            warn "cannot verify checksum: neither sha256sum nor shasum is available"
-        fi
-        if [ -n "${_actual}" ]; then
-            if [ "${_actual}" != "${_expected}" ]; then
-                error "checksum mismatch (expected ${_expected}, got ${_actual})"
-            fi
-            info "checksum verified"
-        fi
-    fi
+if [ "${CCSESH_SKIP_CHECKSUM:-}" = "1" ]; then
+    warn "checksum verification skipped (CCSESH_SKIP_CHECKSUM=1)"
 else
-    warn "could not download checksum file — skipping verification"
+    _checksum_url="https://github.com/${REPO}/releases/download/${_version}/${_archive}.sha256"
+    if _checksum_content=$(download "${_checksum_url}" 2>/dev/null); then
+        _expected=$(printf '%s' "${_checksum_content}" | awk '{print $1}')
+        if [ -n "${_expected}" ]; then
+            _actual=""
+            if command -v sha256sum >/dev/null 2>&1; then
+                _actual=$(sha256sum "${_tmpdir}/${_archive}" | awk '{print $1}')
+            elif command -v shasum >/dev/null 2>&1; then
+                _actual=$(shasum -a 256 "${_tmpdir}/${_archive}" | awk '{print $1}')
+            else
+                error "cannot verify checksum: neither sha256sum nor shasum is available (set CCSESH_SKIP_CHECKSUM=1 to bypass)"
+            fi
+            if [ -n "${_actual}" ]; then
+                if [ "${_actual}" != "${_expected}" ]; then
+                    error "checksum mismatch (expected ${_expected}, got ${_actual})"
+                fi
+                info "checksum verified"
+            fi
+        fi
+    else
+        error "could not download checksum file — set CCSESH_SKIP_CHECKSUM=1 to bypass verification"
+    fi
 fi
 
 # --- Extract ---
