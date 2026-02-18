@@ -1,4 +1,5 @@
 /target
+/.worktrees
 
 # Claude Code local config
 .claude/settings.local.json
