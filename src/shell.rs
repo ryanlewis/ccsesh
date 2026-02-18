@@ -11,7 +11,7 @@ pub fn print_shell_init(shell: &str) -> anyhow::Result<()> {
             return Err(CcseshError::UnknownShell {
                 shell: shell.to_string(),
             }
-            .into())
+            .into());
         }
     }
     Ok(())
@@ -24,7 +24,10 @@ pub fn print_exec_protocol(session: &SessionInfo) -> anyhow::Result<()> {
     }
     let escaped_dir = shell_escape_single_quote(&session.project_dir.to_string_lossy());
     println!("__CCSESH_EXEC__");
-    println!("cd {} && claude --resume {}", escaped_dir, session.session_id);
+    println!(
+        "cd {} && claude --resume {}",
+        escaped_dir, session.session_id
+    );
     Ok(())
 }
 

@@ -35,22 +35,22 @@ pub fn parse_session(candidate: &SessionCandidate, home_dir: &str) -> Result<Ses
             return Err(anyhow!("Subagent session: {}", candidate.path.display()));
         }
 
-        if cwd.is_none() {
-            if let Some(ref c) = parsed.cwd {
-                cwd = Some(c.clone());
-            }
+        if cwd.is_none()
+            && let Some(ref c) = parsed.cwd
+        {
+            cwd = Some(c.clone());
         }
 
-        if slug.is_none() {
-            if let Some(ref s) = parsed.slug {
-                slug = Some(s.clone());
-            }
+        if slug.is_none()
+            && let Some(ref s) = parsed.slug
+        {
+            slug = Some(s.clone());
         }
 
-        if first_prompt.is_none() {
-            if let Some(prompt) = try_extract_prompt(&parsed) {
-                first_prompt = Some(prompt);
-            }
+        if first_prompt.is_none()
+            && let Some(prompt) = try_extract_prompt(&parsed)
+        {
+            first_prompt = Some(prompt);
         }
 
         if cwd.is_some() && slug.is_some() && first_prompt.is_some() {
@@ -89,12 +89,11 @@ pub fn extract_text_from_content(value: &serde_json::Value) -> Option<String> {
         serde_json::Value::String(s) => Some(s.clone()),
         serde_json::Value::Array(arr) => {
             for item in arr {
-                if let Some(obj) = item.as_object() {
-                    if obj.get("type").and_then(|v| v.as_str()) == Some("text") {
-                        if let Some(text) = obj.get("text").and_then(|v| v.as_str()) {
-                            return Some(text.to_string());
-                        }
-                    }
+                if let Some(obj) = item.as_object()
+                    && obj.get("type").and_then(|v| v.as_str()) == Some("text")
+                    && let Some(text) = obj.get("text").and_then(|v| v.as_str())
+                {
+                    return Some(text.to_string());
                 }
             }
             None

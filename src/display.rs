@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use owo_colors::{OwoColorize, Stream, Style};
 use serde::Serialize;
 
-use crate::types::{shell_escape_single_quote, SessionInfo};
+use crate::types::{SessionInfo, shell_escape_single_quote};
 
 /// Truncate a prompt at word boundaries, appending "..." if truncated.
 pub fn truncate_prompt(prompt: &str, max_chars: usize) -> String {
@@ -271,10 +271,7 @@ pub fn format_json(sessions: &[SessionInfo], now: DateTime<Utc>) -> String {
                 session_id: session.session_id.clone(),
                 project_dir: project_dir_str,
                 project_dir_display: session.project_dir_display.clone(),
-                last_active: session
-                    .last_active
-                    .format("%Y-%m-%dT%H:%M:%SZ")
-                    .to_string(),
+                last_active: session.last_active.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
                 last_active_relative: format_relative_time(duration),
                 first_prompt: session.first_prompt.clone(),
                 slug: session.slug.clone(),
@@ -305,10 +302,7 @@ mod tests {
     ) -> SessionInfo {
         SessionInfo {
             session_id: id.to_string(),
-            path: PathBuf::from(format!(
-                "/home/user/.claude/projects/test/{}.jsonl",
-                id
-            )),
+            path: PathBuf::from(format!("/home/user/.claude/projects/test/{}.jsonl", id)),
             project_dir: PathBuf::from(dir),
             project_dir_display: display.to_string(),
             last_active,
@@ -362,10 +356,7 @@ mod tests {
 
     #[test]
     fn relative_time_23_hours() {
-        assert_eq!(
-            format_relative_time(TimeDelta::seconds(86399)),
-            "23h ago"
-        );
+        assert_eq!(format_relative_time(TimeDelta::seconds(86399)), "23h ago");
     }
 
     #[test]
@@ -375,10 +366,7 @@ mod tests {
 
     #[test]
     fn relative_time_6_days() {
-        assert_eq!(
-            format_relative_time(TimeDelta::seconds(604799)),
-            "6d ago"
-        );
+        assert_eq!(format_relative_time(TimeDelta::seconds(604799)), "6d ago");
     }
 
     #[test]
@@ -388,18 +376,12 @@ mod tests {
 
     #[test]
     fn relative_time_4_weeks() {
-        assert_eq!(
-            format_relative_time(TimeDelta::seconds(2591999)),
-            "4w ago"
-        );
+        assert_eq!(format_relative_time(TimeDelta::seconds(2591999)), "4w ago");
     }
 
     #[test]
     fn relative_time_1_month() {
-        assert_eq!(
-            format_relative_time(TimeDelta::seconds(2592000)),
-            "1mo ago"
-        );
+        assert_eq!(format_relative_time(TimeDelta::seconds(2592000)), "1mo ago");
     }
 
     #[test]
@@ -412,10 +394,7 @@ mod tests {
 
     #[test]
     fn relative_time_1_year() {
-        assert_eq!(
-            format_relative_time(TimeDelta::seconds(31536000)),
-            "1y ago"
-        );
+        assert_eq!(format_relative_time(TimeDelta::seconds(31536000)), "1y ago");
     }
 
     #[test]
@@ -442,10 +421,7 @@ mod tests {
 
     #[test]
     fn relative_time_short_days() {
-        assert_eq!(
-            format_relative_time_short(TimeDelta::seconds(172800)),
-            "2d"
-        );
+        assert_eq!(format_relative_time_short(TimeDelta::seconds(172800)), "2d");
     }
 
     #[test]
@@ -730,24 +706,25 @@ mod tests {
 
         let entry = &parsed[0];
         assert_eq!(entry["index"], 0);
-        assert_eq!(
-            entry["session_id"],
-            "eb53d999-8692-42ce-a376-4f82206a086d"
-        );
+        assert_eq!(entry["session_id"], "eb53d999-8692-42ce-a376-4f82206a086d");
         assert_eq!(entry["project_dir"], "/home/user/dev/ccsesh");
         assert_eq!(entry["project_dir_display"], "~/dev/ccsesh");
         assert!(entry["last_active"].as_str().unwrap().ends_with('Z'));
         assert_eq!(entry["last_active_relative"], "2m ago");
         assert_eq!(entry["first_prompt"], "Design technical approach");
         assert_eq!(entry["slug"], "woolly-conjuring-journal");
-        assert!(entry["resume_command"]
-            .as_str()
-            .unwrap()
-            .contains("claude --resume"));
-        assert!(entry["resume_command"]
-            .as_str()
-            .unwrap()
-            .contains("eb53d999-8692-42ce-a376-4f82206a086d"));
+        assert!(
+            entry["resume_command"]
+                .as_str()
+                .unwrap()
+                .contains("claude --resume")
+        );
+        assert!(
+            entry["resume_command"]
+                .as_str()
+                .unwrap()
+                .contains("eb53d999-8692-42ce-a376-4f82206a086d")
+        );
     }
 
     #[test]

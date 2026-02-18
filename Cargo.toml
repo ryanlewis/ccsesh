@@ -2,6 +2,9 @@
 name = "ccsesh"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+description = "List and resume recent Claude Code sessions"
+repository = "https://github.com/ryanlewis/ccsesh"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

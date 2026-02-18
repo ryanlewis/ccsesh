@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
+
+PackageIdentifier: ryanlewis.ccsesh
+PackageVersion: 0.1.0
+PackageLocale: en-US
+Publisher: ryanlewis
+PublisherUrl: https://github.com/ryanlewis
+PackageName: ccsesh
+PackageUrl: https://github.com/ryanlewis/ccsesh
+License: MIT
+LicenseUrl: https://github.com/ryanlewis/ccsesh/blob/main/LICENSE
+ShortDescription: List and resume recent Claude Code sessions
+Tags:
+  - cli
+  - claude
+  - developer-tools
+  - terminal
+  - rust
+ManifestType: defaultLocale
+ManifestVersion: 1.9.0

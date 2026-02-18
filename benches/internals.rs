@@ -84,10 +84,7 @@ fn make_session(
     slug: Option<&str>,
 ) -> SessionInfo {
     SessionInfo {
-        session_id: format!(
-            "{:08x}-{:04x}-{:04x}-{:04x}-{:012x}",
-            index, 1, 2, 3, 4
-        ),
+        session_id: format!("{:08x}-{:04x}-{:04x}-{:04x}-{:012x}", index, 1, 2, 3, 4),
         path: PathBuf::from(format!(
             "/home/user/.claude/projects/proj/{:08x}-{:04x}-{:04x}-{:04x}-{:012x}.jsonl",
             index, 1, 2, 3, 4

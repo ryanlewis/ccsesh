@@ -1,0 +1,212 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-arm64
+            runner: macos-latest
+            target: aarch64-apple-darwin
+            use_cross: false
+            archive_ext: tar.gz
+          - name: linux-x86_64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            use_cross: false
+            archive_ext: tar.gz
+          - name: linux-arm64
+            runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            use_cross: true
+            archive_ext: tar.gz
+          - name: windows-x86_64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            use_cross: false
+            archive_ext: zip
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.use_cross
+        run: cargo install cross --locked
+
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ matrix.use_cross }}" = "true" ]; then
+            cross build --release --locked --target ${{ matrix.target }}
+          else
+            cargo build --release --locked --target ${{ matrix.target }}
+          fi
+
+      - name: Package (Unix)
+        if: matrix.archive_ext == 'tar.gz'
+        shell: bash
+        run: |
+          ARCHIVE="ccsesh-${{ matrix.target }}.tar.gz"
+          STAGING="staging"
+          mkdir -p "$STAGING"
+          cp "target/${{ matrix.target }}/release/ccsesh" "$STAGING/"
+          cp LICENSE README.md "$STAGING/"
+          tar czf "$ARCHIVE" -C "$STAGING" ccsesh LICENSE README.md
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "$ARCHIVE" | tee "$ARCHIVE.sha256"
+          else
+            shasum -a 256 "$ARCHIVE" | tee "$ARCHIVE.sha256"
+          fi
+
+      - name: Package (Windows)
+        if: matrix.archive_ext == 'zip'
+        shell: pwsh
+        run: |
+          $Archive = "ccsesh-${{ matrix.target }}.zip"
+          $Staging = "staging"
+          New-Item -ItemType Directory -Path $Staging -Force | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/ccsesh.exe" "$Staging/"
+          Copy-Item "LICENSE" "$Staging/"
+          Copy-Item "README.md" "$Staging/"
+          Compress-Archive -Path "$Staging/ccsesh.exe", "$Staging/LICENSE", "$Staging/README.md" -DestinationPath $Archive
+          $Hash = (Get-FileHash $Archive -Algorithm SHA256).Hash.ToLower()
+          "$Hash  $Archive" | Out-File -Encoding ASCII "$Archive.sha256"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ccsesh-${{ matrix.target }}
+          path: |
+            ccsesh-${{ matrix.target }}.${{ matrix.archive_ext }}
+            ccsesh-${{ matrix.target }}.${{ matrix.archive_ext }}.sha256
+
+  release:
+    name: Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create checksums.txt
+        run: cat artifacts/*.sha256 > artifacts/checksums.txt
+
+      - name: Create release
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        with:
+          files: |
+            artifacts/*.tar.gz
+            artifacts/*.zip
+            artifacts/*.sha256
+            artifacts/checksums.txt
+          generate_release_notes: true
+
+  publish-homebrew:
+    name: Publish Homebrew Formula
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download release assets
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          BASE="https://github.com/ryanlewis/ccsesh/releases/download/v${VERSION}"
+          curl -fsSL "${BASE}/ccsesh-aarch64-apple-darwin.tar.gz" -o macos-arm64.tar.gz
+          curl -fsSL "${BASE}/ccsesh-x86_64-unknown-linux-gnu.tar.gz" -o linux-x86_64.tar.gz
+          curl -fsSL "${BASE}/ccsesh-aarch64-unknown-linux-gnu.tar.gz" -o linux-arm64.tar.gz
+
+      - name: Compute checksums
+        id: checksums
+        run: |
+          echo "macos_arm64=$(sha256sum macos-arm64.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "linux_x86_64=$(sha256sum linux-x86_64.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "linux_arm64=$(sha256sum linux-arm64.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tap repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: ryanlewis/homebrew-ccsesh
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Generate formula
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          MACOS_ARM64_SHA="${{ steps.checksums.outputs.macos_arm64 }}"
+          LINUX_X86_64_SHA="${{ steps.checksums.outputs.linux_x86_64 }}"
+          LINUX_ARM64_SHA="${{ steps.checksums.outputs.linux_arm64 }}"
+          mkdir -p homebrew-tap/Formula
+          cat > homebrew-tap/Formula/ccsesh.rb <<'FORMULA'
+class Ccsesh < Formula
+  desc "List and resume recent Claude Code sessions"
+  homepage "https://github.com/ryanlewis/ccsesh"
+  version "VERSION_PLACEHOLDER"
+  license "MIT"
+
+  on_macos do
+    url "https://github.com/ryanlewis/ccsesh/releases/download/vVERSION_PLACEHOLDER/ccsesh-aarch64-apple-darwin.tar.gz"
+    sha256 "MACOS_ARM64_SHA_PLACEHOLDER"
+  end
+
+  on_linux do
+    on_arm do
+      url "https://github.com/ryanlewis/ccsesh/releases/download/vVERSION_PLACEHOLDER/ccsesh-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "LINUX_ARM64_SHA_PLACEHOLDER"
+    end
+
+    on_intel do
+      url "https://github.com/ryanlewis/ccsesh/releases/download/vVERSION_PLACEHOLDER/ccsesh-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "LINUX_X86_64_SHA_PLACEHOLDER"
+    end
+  end
+
+  def install
+    bin.install "ccsesh"
+  end
+
+  test do
+    assert_match "ccsesh", shell_output("#{bin}/ccsesh --help")
+  end
+end
+FORMULA
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" homebrew-tap/Formula/ccsesh.rb
+          sed -i "s/MACOS_ARM64_SHA_PLACEHOLDER/${MACOS_ARM64_SHA}/g" homebrew-tap/Formula/ccsesh.rb
+          sed -i "s/LINUX_ARM64_SHA_PLACEHOLDER/${LINUX_ARM64_SHA}/g" homebrew-tap/Formula/ccsesh.rb
+          sed -i "s/LINUX_X86_64_SHA_PLACEHOLDER/${LINUX_X86_64_SHA}/g" homebrew-tap/Formula/ccsesh.rb
+
+      - name: Commit and push formula
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/ccsesh.rb
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "Update ccsesh to ${{ steps.version.outputs.version }}"
+          git push

@@ -18,10 +18,7 @@ pub fn discover_sessions(home_dir: &str, limit: usize) -> Result<Vec<SessionCand
     let projects_dir = Path::new(home_dir).join(".claude").join("projects");
 
     if !projects_dir.is_dir() {
-        return Err(CcseshError::ProjectsDirNotFound {
-            path: projects_dir,
-        }
-        .into());
+        return Err(CcseshError::ProjectsDirNotFound { path: projects_dir }.into());
     }
 
     let mut candidates = Vec::new();
@@ -235,7 +232,10 @@ mod tests {
         let result = discover_sessions(tmp.path().to_str().unwrap(), 5);
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("No Claude Code session directory found"));
+        assert!(
+            err.to_string()
+                .contains("No Claude Code session directory found")
+        );
     }
 
     #[test]
