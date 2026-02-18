@@ -1,7 +1,7 @@
 use std::io::BufRead;
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc};
 
 use crate::types::{JsonlLine, SessionCandidate, SessionInfo};
@@ -30,6 +30,11 @@ pub fn parse_session(candidate: &SessionCandidate, home_dir: &str) -> Result<Ses
             Err(_) => continue,
         };
 
+        // Bail on subagent sessions (spawned by Claude Code Teams)
+        if parsed.agent_name.is_some() {
+            return Err(anyhow!("Subagent session: {}", candidate.path.display()));
+        }
+
         if cwd.is_none() {
             if let Some(ref c) = parsed.cwd {
                 cwd = Some(c.clone());
@@ -53,9 +58,7 @@ pub fn parse_session(candidate: &SessionCandidate, home_dir: &str) -> Result<Ses
         }
     }
 
-    let project_dir = cwd
-        .map(PathBuf::from)
-        .unwrap_or_default();
+    let project_dir = cwd.map(PathBuf::from).unwrap_or_default();
 
     let project_dir_display = {
         let dir_str = project_dir.to_string_lossy();
@@ -204,10 +207,7 @@ fn extract_session_id(path: &std::path::Path) -> Result<String> {
         .ok_or_else(|| anyhow!("Invalid filename: {}", path.display()))?;
 
     if !is_valid_uuid(stem) {
-        return Err(anyhow!(
-            "Filename is not a valid UUID: {}",
-            path.display()
-        ));
+        return Err(anyhow!("Filename is not a valid UUID: {}", path.display()));
     }
 
     Ok(stem.to_string())
@@ -250,14 +250,19 @@ mod tests {
     const TEST_UUID: &str = "eb53d999-8692-42ce-a376-4f82206a086d";
 
     fn fixture_candidate(fixture_name: &str) -> SessionCandidate {
-        // Copy fixture to a temp file with a UUID filename so parse_session accepts it.
+        // Copy fixture to a unique temp dir with a UUID filename so parse_session accepts it.
+        // Uses thread ID to avoid races when cargo test runs tests in parallel.
         let fixture_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
             .join(fixture_name);
-        let tmp_dir = std::env::temp_dir().join(format!("ccsesh_test_{}", fixture_name));
+        let tmp_dir = std::env::temp_dir().join(format!(
+            "ccsesh_test_{}_{:?}",
+            fixture_name,
+            std::thread::current().id()
+        ));
         let _ = std::fs::create_dir_all(&tmp_dir);
         let dest = tmp_dir.join(format!("{}.jsonl", TEST_UUID));
-        let _ = std::fs::copy(&fixture_path, &dest);
+        std::fs::copy(&fixture_path, &dest).expect("failed to copy fixture");
         SessionCandidate {
             path: dest,
             mtime: SystemTime::now(),
@@ -322,10 +327,7 @@ mod tests {
 
     #[test]
     fn strip_xml_tags_multiple_tags() {
-        assert_eq!(
-            strip_xml_tags("<a>hello</a> <b>world</b>"),
-            "hello world"
-        );
+        assert_eq!(strip_xml_tags("<a>hello</a> <b>world</b>"), "hello world");
     }
 
     // ---- extract_text_from_content tests ----
@@ -409,10 +411,8 @@ mod tests {
 
     #[test]
     fn prompt_from_normal_user_line() {
-        let line: JsonlLine = serde_json::from_str(
-            r#"{"type":"user","message":{"content":"Hello world"}}"#,
-        )
-        .unwrap();
+        let line: JsonlLine =
+            serde_json::from_str(r#"{"type":"user","message":{"content":"Hello world"}}"#).unwrap();
         assert_eq!(try_extract_prompt(&line), Some("Hello world".into()));
     }
 
@@ -436,19 +436,16 @@ mod tests {
 
     #[test]
     fn prompt_skips_slash_command() {
-        let line: JsonlLine = serde_json::from_str(
-            r#"{"type":"user","message":{"content":"/clear"}}"#,
-        )
-        .unwrap();
+        let line: JsonlLine =
+            serde_json::from_str(r#"{"type":"user","message":{"content":"/clear"}}"#).unwrap();
         assert_eq!(try_extract_prompt(&line), None);
     }
 
     #[test]
     fn prompt_skips_assistant_lines() {
-        let line: JsonlLine = serde_json::from_str(
-            r#"{"type":"assistant","message":{"content":"Response text"}}"#,
-        )
-        .unwrap();
+        let line: JsonlLine =
+            serde_json::from_str(r#"{"type":"assistant","message":{"content":"Response text"}}"#)
+                .unwrap();
         assert_eq!(try_extract_prompt(&line), None);
     }
 
@@ -463,10 +460,9 @@ mod tests {
 
     #[test]
     fn prompt_empty_after_xml_strip() {
-        let line: JsonlLine = serde_json::from_str(
-            r#"{"type":"user","message":{"content":"<tag>  </tag>"}}"#,
-        )
-        .unwrap();
+        let line: JsonlLine =
+            serde_json::from_str(r#"{"type":"user","message":{"content":"<tag>  </tag>"}}"#)
+                .unwrap();
         assert_eq!(try_extract_prompt(&line), None);
     }
 
@@ -486,7 +482,10 @@ mod tests {
         let candidate = fixture_candidate("normal.jsonl");
         let info = parse_session(&candidate, "/Users/testuser").unwrap();
         assert_eq!(info.session_id, TEST_UUID);
-        assert_eq!(info.project_dir, PathBuf::from("/Users/testuser/dev/myproject"));
+        assert_eq!(
+            info.project_dir,
+            PathBuf::from("/Users/testuser/dev/myproject")
+        );
         assert_eq!(info.project_dir_display, "~/dev/myproject");
         assert_eq!(info.slug.as_deref(), Some("woolly-conjuring-journal"));
         assert_eq!(
@@ -554,10 +553,7 @@ mod tests {
     fn parse_image_paste_session() {
         let candidate = fixture_candidate("image_paste.jsonl");
         let info = parse_session(&candidate, "/Users/testuser").unwrap();
-        assert_eq!(
-            info.first_prompt.as_deref(),
-            Some("Describe this image")
-        );
+        assert_eq!(info.first_prompt.as_deref(), Some("Describe this image"));
     }
 
     #[test]
@@ -605,6 +601,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_subagent_session_returns_err() {
+        let candidate = fixture_candidate("team_subagent.jsonl");
+        assert!(parse_session(&candidate, "/Users/testuser").is_err());
+    }
+
+    #[test]
     fn parse_nonexistent_file_returns_err() {
         let candidate = SessionCandidate {
             path: PathBuf::from("/tmp/does-not-exist/eb53d999-8692-42ce-a376-4f82206a086d.jsonl"),
@@ -635,10 +637,7 @@ mod tests {
 
         // With a different home dir that doesn't match
         let info2 = parse_session(&candidate, "/home/other").unwrap();
-        assert_eq!(
-            info2.project_dir_display,
-            "/Users/testuser/dev/myproject"
-        );
+        assert_eq!(info2.project_dir_display, "/Users/testuser/dev/myproject");
     }
 
     #[test]

@@ -52,6 +52,7 @@ fn fixture_to_uuid(name: &str) -> &str {
         "summary_only.jsonl" => "3b53d999-8692-42ce-a376-4f82206a086d",
         "no_cwd.jsonl" => "4b53d999-8692-42ce-a376-4f82206a086d",
         "image_paste.jsonl" => "5b53d999-8692-42ce-a376-4f82206a086d",
+        "team_subagent.jsonl" => "6b53d999-8692-42ce-a376-4f82206a086d",
         _ => panic!("Unknown fixture: {}", name),
     }
 }
@@ -70,7 +71,11 @@ fn default_format_with_sessions() {
     let now = SystemTime::now();
     let tmp = setup_test_home(&[
         ("-project-a", "normal.jsonl", now),
-        ("-project-b", "slash_command.jsonl", now - Duration::from_secs(3600)),
+        (
+            "-project-b",
+            "slash_command.jsonl",
+            now - Duration::from_secs(3600),
+        ),
     ]);
 
     ccsesh_cmd(&tmp)
@@ -78,7 +83,9 @@ fn default_format_with_sessions() {
         .success()
         .stdout(predicate::str::contains("Recent Claude Code sessions:"))
         .stdout(predicate::str::contains("Resume: ccsesh <number>"))
-        .stdout(predicate::str::contains("Design technical approach for ccsesh"));
+        .stdout(predicate::str::contains(
+            "Design technical approach for ccsesh",
+        ));
 }
 
 #[test]
@@ -86,7 +93,11 @@ fn default_format_shows_indices() {
     let now = SystemTime::now();
     let tmp = setup_test_home(&[
         ("-project-a", "normal.jsonl", now),
-        ("-project-b", "slash_command.jsonl", now - Duration::from_secs(60)),
+        (
+            "-project-b",
+            "slash_command.jsonl",
+            now - Duration::from_secs(60),
+        ),
     ]);
 
     let output = ccsesh_cmd(&tmp).output().unwrap();
@@ -102,19 +113,14 @@ fn default_format_shows_indices() {
 #[test]
 fn json_output_valid() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "normal.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "normal.jsonl", now)]);
 
-    let output = ccsesh_cmd(&tmp)
-        .arg("--json")
-        .output()
-        .unwrap();
+    let output = ccsesh_cmd(&tmp).arg("--json").output().unwrap();
     assert!(output.status.success());
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let parsed: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("Output should be valid JSON");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&stdout).expect("Output should be valid JSON");
 
     let arr = parsed.as_array().expect("Should be a JSON array");
     assert_eq!(arr.len(), 1);
@@ -126,15 +132,18 @@ fn json_output_valid() {
     assert!(session["project_dir_display"].is_string());
     assert!(session["last_active"].is_string());
     assert!(session["last_active_relative"].is_string());
-    assert!(session["resume_command"].as_str().unwrap().contains("claude --resume"));
+    assert!(
+        session["resume_command"]
+            .as_str()
+            .unwrap()
+            .contains("claude --resume")
+    );
 }
 
 #[test]
 fn json_takes_precedence_over_format() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "normal.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "normal.jsonl", now)]);
 
     let output = ccsesh_cmd(&tmp)
         .args(["--json", "--format", "short"])
@@ -144,8 +153,8 @@ fn json_takes_precedence_over_format() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Should be JSON, not short format
-    let _parsed: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("--json should produce JSON even with --format short");
+    let _parsed: serde_json::Value =
+        serde_json::from_str(&stdout).expect("--json should produce JSON even with --format short");
 }
 
 // ---- Short format tests ----
@@ -155,7 +164,11 @@ fn short_format_output() {
     let now = SystemTime::now();
     let tmp = setup_test_home(&[
         ("-project-a", "normal.jsonl", now),
-        ("-project-b", "slash_command.jsonl", now - Duration::from_secs(120)),
+        (
+            "-project-b",
+            "slash_command.jsonl",
+            now - Duration::from_secs(120),
+        ),
     ]);
 
     ccsesh_cmd(&tmp)
@@ -172,9 +185,7 @@ fn short_format_output() {
 #[test]
 fn limit_zero_no_error() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "normal.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "normal.jsonl", now)]);
 
     ccsesh_cmd(&tmp)
         .args(["--limit", "0"])
@@ -189,8 +200,16 @@ fn limit_restricts_output() {
     let now = SystemTime::now();
     let tmp = setup_test_home(&[
         ("-project-a", "normal.jsonl", now),
-        ("-project-b", "slash_command.jsonl", now - Duration::from_secs(60)),
-        ("-project-c", "array_content.jsonl", now - Duration::from_secs(120)),
+        (
+            "-project-b",
+            "slash_command.jsonl",
+            now - Duration::from_secs(60),
+        ),
+        (
+            "-project-c",
+            "array_content.jsonl",
+            now - Duration::from_secs(120),
+        ),
     ]);
 
     let output = ccsesh_cmd(&tmp)
@@ -205,9 +224,7 @@ fn limit_restricts_output() {
 #[test]
 fn limit_zero_json_empty_array() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "normal.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "normal.jsonl", now)]);
 
     let output = ccsesh_cmd(&tmp)
         .args(["--json", "--limit", "0"])
@@ -221,9 +238,7 @@ fn limit_zero_json_empty_array() {
 #[test]
 fn limit_zero_short_empty() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "normal.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "normal.jsonl", now)]);
 
     ccsesh_cmd(&tmp)
         .args(["--format", "short", "--limit", "0"])
@@ -237,9 +252,7 @@ fn limit_zero_short_empty() {
 #[test]
 fn resume_without_shell_mode() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "normal.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "normal.jsonl", now)]);
 
     ccsesh_cmd(&tmp)
         .arg("0")
@@ -252,9 +265,7 @@ fn resume_without_shell_mode() {
 #[test]
 fn resume_with_shell_mode() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "normal.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "normal.jsonl", now)]);
 
     ccsesh_cmd(&tmp)
         .args(["0", "--shell-mode", "fish"])
@@ -269,7 +280,11 @@ fn resume_out_of_range() {
     let now = SystemTime::now();
     let tmp = setup_test_home(&[
         ("-project-a", "normal.jsonl", now),
-        ("-project-b", "slash_command.jsonl", now - Duration::from_secs(60)),
+        (
+            "-project-b",
+            "slash_command.jsonl",
+            now - Duration::from_secs(60),
+        ),
     ]);
 
     ccsesh_cmd(&tmp)
@@ -284,10 +299,22 @@ fn limit_3_index_4_out_of_range() {
     let now = SystemTime::now();
     let tmp = setup_test_home(&[
         ("-proj-a", "normal.jsonl", now),
-        ("-proj-b", "slash_command.jsonl", now - Duration::from_secs(60)),
-        ("-proj-c", "array_content.jsonl", now - Duration::from_secs(120)),
+        (
+            "-proj-b",
+            "slash_command.jsonl",
+            now - Duration::from_secs(60),
+        ),
+        (
+            "-proj-c",
+            "array_content.jsonl",
+            now - Duration::from_secs(120),
+        ),
         ("-proj-d", "truncated.jsonl", now - Duration::from_secs(180)),
-        ("-proj-e", "compact_summary.jsonl", now - Duration::from_secs(240)),
+        (
+            "-proj-e",
+            "compact_summary.jsonl",
+            now - Duration::from_secs(240),
+        ),
     ]);
 
     // limit 3 means only indices 0-2 are valid; index 4 should fail
@@ -303,15 +330,15 @@ fn limit_3_index_4_out_of_range() {
 #[test]
 fn shell_mode_without_index_errors() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "normal.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "normal.jsonl", now)]);
 
     ccsesh_cmd(&tmp)
         .args(["--shell-mode", "fish"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("--shell-mode requires a session index"));
+        .stderr(predicate::str::contains(
+            "--shell-mode requires a session index",
+        ));
 }
 
 // ---- Unknown command ----
@@ -319,9 +346,7 @@ fn shell_mode_without_index_errors() {
 #[test]
 fn unknown_command_errors() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "normal.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "normal.jsonl", now)]);
 
     ccsesh_cmd(&tmp)
         .arg("foobar")
@@ -410,7 +435,9 @@ fn missing_projects_dir_errors() {
     ccsesh_cmd(&tmp)
         .assert()
         .failure()
-        .stderr(predicate::str::contains("No Claude Code session directory found"));
+        .stderr(predicate::str::contains(
+            "No Claude Code session directory found",
+        ));
 }
 
 // ---- Edge case: all sessions unparseable ----
@@ -437,14 +464,9 @@ fn all_unparseable_sessions_treated_as_no_sessions() {
 #[test]
 fn json_schema_fields_complete() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "normal.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "normal.jsonl", now)]);
 
-    let output = ccsesh_cmd(&tmp)
-        .arg("--json")
-        .output()
-        .unwrap();
+    let output = ccsesh_cmd(&tmp).arg("--json").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: serde_json::Value = serde_json::from_str(&stdout).unwrap();
     let session = &parsed[0];
@@ -453,12 +475,24 @@ fn json_schema_fields_complete() {
     assert!(session.get("index").is_some(), "missing index");
     assert!(session.get("session_id").is_some(), "missing session_id");
     assert!(session.get("project_dir").is_some(), "missing project_dir");
-    assert!(session.get("project_dir_display").is_some(), "missing project_dir_display");
+    assert!(
+        session.get("project_dir_display").is_some(),
+        "missing project_dir_display"
+    );
     assert!(session.get("last_active").is_some(), "missing last_active");
-    assert!(session.get("last_active_relative").is_some(), "missing last_active_relative");
-    assert!(session.get("first_prompt").is_some(), "missing first_prompt");
+    assert!(
+        session.get("last_active_relative").is_some(),
+        "missing last_active_relative"
+    );
+    assert!(
+        session.get("first_prompt").is_some(),
+        "missing first_prompt"
+    );
     assert!(session.get("slug").is_some(), "missing slug");
-    assert!(session.get("resume_command").is_some(), "missing resume_command");
+    assert!(
+        session.get("resume_command").is_some(),
+        "missing resume_command"
+    );
 
     // last_active should end with Z (UTC)
     let last_active = session["last_active"].as_str().unwrap();
@@ -475,9 +509,7 @@ fn json_schema_fields_complete() {
 #[test]
 fn session_with_slug_no_prompt_shown_in_default() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "meta_only.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "meta_only.jsonl", now)]);
 
     ccsesh_cmd(&tmp)
         .assert()
@@ -485,19 +517,34 @@ fn session_with_slug_no_prompt_shown_in_default() {
         .stdout(predicate::str::contains("gentle-morning-breeze"));
 }
 
-// ---- Empty session fallback ----
+// ---- Empty session filtering ----
 
 #[test]
-fn empty_session_shows_fallback() {
+fn empty_session_filtered_from_output() {
     let now = SystemTime::now();
     let tmp = setup_test_home(&[
-        ("-project-a", "empty.jsonl", now),
+        ("-project-a", "normal.jsonl", now),
+        ("-project-b", "empty.jsonl", now - Duration::from_secs(60)),
     ]);
 
     ccsesh_cmd(&tmp)
         .assert()
         .success()
-        .stdout(predicate::str::contains("(empty session)"));
+        .stdout(predicate::str::contains("(empty session)").not())
+        .stdout(predicate::str::contains(
+            "Design technical approach for ccsesh",
+        ));
+}
+
+#[test]
+fn only_empty_sessions_treated_as_no_sessions() {
+    let now = SystemTime::now();
+    let tmp = setup_test_home(&[("-project-a", "empty.jsonl", now)]);
+
+    ccsesh_cmd(&tmp)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("No Claude Code sessions found"));
 }
 
 // ---- JSON nullable fields ----
@@ -505,37 +552,107 @@ fn empty_session_shows_fallback() {
 #[test]
 fn json_null_first_prompt_for_meta_only() {
     let now = SystemTime::now();
-    let tmp = setup_test_home(&[
-        ("-project-a", "meta_only.jsonl", now),
-    ]);
+    let tmp = setup_test_home(&[("-project-a", "meta_only.jsonl", now)]);
 
-    let output = ccsesh_cmd(&tmp)
-        .arg("--json")
-        .output()
-        .unwrap();
+    let output = ccsesh_cmd(&tmp).arg("--json").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: serde_json::Value = serde_json::from_str(&stdout).unwrap();
     let session = &parsed[0];
 
-    assert!(session["first_prompt"].is_null(), "meta-only session should have null first_prompt");
-    assert!(session["slug"].is_string(), "meta-only session should have slug");
+    assert!(
+        session["first_prompt"].is_null(),
+        "meta-only session should have null first_prompt"
+    );
+    assert!(
+        session["slug"].is_string(),
+        "meta-only session should have slug"
+    );
 }
 
 #[test]
-fn json_null_slug_for_empty_session() {
+fn json_empty_session_excluded() {
     let now = SystemTime::now();
     let tmp = setup_test_home(&[
-        ("-project-a", "empty.jsonl", now),
+        ("-project-a", "normal.jsonl", now),
+        ("-project-b", "empty.jsonl", now - Duration::from_secs(60)),
     ]);
 
-    let output = ccsesh_cmd(&tmp)
-        .arg("--json")
-        .output()
-        .unwrap();
+    let output = ccsesh_cmd(&tmp).arg("--json").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-    let session = &parsed[0];
+    let arr = parsed.as_array().unwrap();
 
-    assert!(session["first_prompt"].is_null());
-    assert!(session["slug"].is_null());
+    // Only the normal session should appear, not the empty one
+    assert_eq!(arr.len(), 1);
+    assert!(arr[0]["first_prompt"].as_str().is_some());
+}
+
+// ---- Team subagent filtering ----
+
+#[test]
+fn subagent_session_filtered_from_output() {
+    let now = SystemTime::now();
+    let tmp = setup_test_home(&[
+        ("-project-a", "normal.jsonl", now),
+        (
+            "-project-a",
+            "team_subagent.jsonl",
+            now - Duration::from_secs(30),
+        ),
+    ]);
+
+    let output = ccsesh_cmd(&tmp).arg("--json").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let parsed: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let arr = parsed.as_array().unwrap();
+
+    // Only the normal session should appear, subagent is filtered
+    assert_eq!(arr.len(), 1);
+    assert_eq!(
+        arr[0]["first_prompt"].as_str().unwrap(),
+        "Design technical approach for ccsesh"
+    );
+}
+
+#[test]
+fn only_subagent_sessions_treated_as_no_sessions() {
+    let now = SystemTime::now();
+    let tmp = setup_test_home(&[("-project-a", "team_subagent.jsonl", now)]);
+
+    ccsesh_cmd(&tmp)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("No Claude Code sessions found"));
+}
+
+#[test]
+fn resume_index_matches_filtered_listing() {
+    let now = SystemTime::now();
+    let tmp = setup_test_home(&[
+        ("-project-a", "team_subagent.jsonl", now),
+        ("-project-b", "normal.jsonl", now - Duration::from_secs(60)),
+        (
+            "-project-c",
+            "slash_command.jsonl",
+            now - Duration::from_secs(120),
+        ),
+    ]);
+
+    // Index 0 should be normal.jsonl (subagent filtered out), not the subagent
+    ccsesh_cmd(&tmp)
+        .arg("0")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "claude --resume eb53d999-8692-42ce-a376-4f82206a086d",
+        ));
+
+    // Index 1 should be slash_command.jsonl
+    ccsesh_cmd(&tmp)
+        .arg("1")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "claude --resume fb53d999-8692-42ce-a376-4f82206a086d",
+        ));
 }

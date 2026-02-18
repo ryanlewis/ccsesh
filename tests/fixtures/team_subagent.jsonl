@@ -1,0 +1,2 @@
+{"teamName":"test-team","agentName":"worker-1","type":"user","cwd":"/Users/testuser/dev/project","message":{"role":"user","content":"<teammate-message teammate_id=\"team-lead\">\n{\"type\":\"task_assignment\",\"taskId\":\"1\",\"subject\":\"Do the task\"}\n</teammate-message>"}}
+{"teamName":"test-team","agentName":"worker-1","type":"assistant","slug":"busy-building-hamster","message":{"role":"assistant","content":"I'll handle this task."}}

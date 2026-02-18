@@ -38,6 +38,10 @@ pub struct JsonlLine {
     #[serde(rename = "isCompactSummary")]
     pub is_compact_summary: Option<bool>,
     pub slug: Option<String>,
+    #[serde(rename = "teamName")]
+    pub team_name: Option<String>,
+    #[serde(rename = "agentName")]
+    pub agent_name: Option<String>,
     pub message: Option<JsonlMessage>,
 }
 
