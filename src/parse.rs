@@ -61,6 +61,9 @@ pub fn parse_session(candidate: &SessionCandidate, home_dir: &str) -> Result<Ses
         }
     }
 
+    // Fall back to an empty PathBuf when cwd is absent or was rejected (e.g.
+    // contained control characters). The session can still be listed — it just
+    // cannot be meaningfully resumed via `cd`, and we prefer that over crashing.
     let project_dir = cwd.map(PathBuf::from).unwrap_or_default();
 
     let project_dir_display = {

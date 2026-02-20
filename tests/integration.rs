@@ -53,6 +53,7 @@ fn fixture_to_uuid(name: &str) -> &str {
         "no_cwd.jsonl" => "4b53d999-8692-42ce-a376-4f82206a086d",
         "image_paste.jsonl" => "5b53d999-8692-42ce-a376-4f82206a086d",
         "team_subagent.jsonl" => "6b53d999-8692-42ce-a376-4f82206a086d",
+        "newline_cwd.jsonl" => "7b53d999-8692-42ce-a376-4f82206a086d",
         _ => panic!("Unknown fixture: {}", name),
     }
 }
