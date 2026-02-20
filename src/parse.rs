@@ -37,6 +37,7 @@ pub fn parse_session(candidate: &SessionCandidate, home_dir: &str) -> Result<Ses
 
         if cwd.is_none()
             && let Some(ref c) = parsed.cwd
+            && !c.chars().any(|ch| ch.is_control())
         {
             cwd = Some(c.clone());
         }
@@ -58,6 +59,10 @@ pub fn parse_session(candidate: &SessionCandidate, home_dir: &str) -> Result<Ses
         }
     }
 
+    // Fall back to an empty PathBuf when cwd is absent or was rejected (e.g.
+    // contained C0/C1 control characters or DEL). The session can still be
+    // listed — it just cannot be meaningfully resumed via `cd`, and we prefer
+    // that over crashing.
     let project_dir = cwd.map(PathBuf::from).unwrap_or_default();
 
     let project_dir_display = {
@@ -656,6 +661,19 @@ mod tests {
         assert_eq!(
             info.first_prompt.as_deref(),
             Some("Design technical approach for ccsesh")
+        );
+    }
+
+    #[test]
+    fn parse_cwd_with_newline_is_rejected() {
+        let candidate = fixture_candidate("newline_cwd.jsonl");
+        let info = parse_session(&candidate, "/tmp").unwrap();
+        // cwd containing \n should be rejected, falling back to empty
+        assert_eq!(info.project_dir, PathBuf::from(""));
+        // The prompt should still be extracted
+        assert_eq!(
+            info.first_prompt.as_deref(),
+            Some("Test prompt with newline cwd")
         );
     }
 

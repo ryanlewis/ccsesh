@@ -57,16 +57,57 @@ pub enum OutputFormat {
 }
 
 /// Wraps a string in single quotes, escaping internal single quotes as `'\''`.
+/// Control characters (newlines, carriage returns, null bytes) are stripped
+/// as defense-in-depth against shell injection.
 pub fn shell_escape_single_quote(s: &str) -> String {
     let mut out = String::with_capacity(s.len() + 2);
     out.push('\'');
     for c in s.chars() {
-        if c == '\'' {
-            out.push_str("'\\''");
-        } else {
-            out.push(c);
+        match c {
+            '\'' => out.push_str("'\\''"),
+            '\n' | '\r' | '\0' => {} // strip control characters
+            _ => out.push(c),
         }
     }
     out.push('\'');
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shell_escape_normal_string() {
+        assert_eq!(shell_escape_single_quote("/tmp/project"), "'/tmp/project'");
+    }
+
+    #[test]
+    fn shell_escape_single_quote_in_string() {
+        assert_eq!(shell_escape_single_quote("it's"), "'it'\\''s'");
+    }
+
+    #[test]
+    fn shell_escape_strips_newline() {
+        assert_eq!(
+            shell_escape_single_quote("/tmp/safe\nmalicious"),
+            "'/tmp/safemalicious'"
+        );
+    }
+
+    #[test]
+    fn shell_escape_strips_carriage_return() {
+        assert_eq!(
+            shell_escape_single_quote("/tmp/safe\rmalicious"),
+            "'/tmp/safemalicious'"
+        );
+    }
+
+    #[test]
+    fn shell_escape_strips_null_byte() {
+        assert_eq!(
+            shell_escape_single_quote("/tmp/safe\0malicious"),
+            "'/tmp/safemalicious'"
+        );
+    }
 }
