@@ -290,6 +290,33 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn symlinked_project_dirs_are_skipped() {
+        use std::os::unix::fs as unix_fs;
+
+        let tmp = assert_fs::TempDir::new().unwrap();
+        let projects = setup_projects_dir(tmp.path());
+
+        // Create a real directory outside the projects tree with a JSONL file inside it
+        let outside_dir = tmp.path().join("outside-project");
+        fs::create_dir_all(&outside_dir).unwrap();
+        fs::write(outside_dir.join("session.jsonl"), "{}").unwrap();
+
+        // Symlink from inside the projects directory pointing to that outside directory
+        unix_fs::symlink(&outside_dir, projects.join("symlinked-project")).unwrap();
+
+        // Also create a real project directory to ensure discovery still works
+        let real_project = projects.join("real-project");
+        fs::create_dir_all(&real_project).unwrap();
+        fs::write(real_project.join("real.jsonl"), "{}").unwrap();
+
+        let result = discover_sessions(tmp.path().to_str().unwrap(), 10).unwrap();
+        // Only the real project's file should be discovered; the symlinked directory is skipped
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].path.file_name().unwrap(), "real.jsonl");
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn unreadable_files_skipped_silently() {
         use std::os::unix::fs::PermissionsExt;
 
