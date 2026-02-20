@@ -473,7 +473,7 @@ mod tests {
         // This is > 72 chars. Should truncate at last space before position 69.
         let result = truncate_prompt(s, 72);
         assert!(result.ends_with("..."));
-        assert!(result.len() <= 72);
+        assert!(result.chars().count() <= 72);
     }
 
     #[test]
@@ -481,7 +481,7 @@ mod tests {
         let s = "a".repeat(80);
         let result = truncate_prompt(&s, 72);
         assert_eq!(result, format!("{}...", "a".repeat(69)));
-        assert_eq!(result.len(), 72);
+        assert_eq!(result.chars().count(), 72);
     }
 
     #[test]
@@ -494,7 +494,7 @@ mod tests {
         let s = "Design technical approach for ccsesh tool implementation details here";
         let result = truncate_prompt(s, 52);
         assert!(result.ends_with("..."));
-        assert!(result.len() <= 52);
+        assert!(result.chars().count() <= 52);
     }
 
     // --- format_default ---
@@ -870,5 +870,15 @@ mod tests {
         let s = "Fix 🐛 in café résumé 日本語テスト end";
         let result = truncate_prompt(s, 20);
         assert!(!result.is_empty());
+        assert!(result.chars().count() <= 20);
+    }
+
+    #[test]
+    fn truncate_prompt_panic_regression_utf8_boundary() {
+        let emoji_prefix = "🌍".repeat(17); // 68 bytes, 17 chars
+        let s = format!("{} extra words here for padding", emoji_prefix);
+        let result = truncate_prompt(&s, 20);
+        assert!(result.ends_with("..."));
+        assert!(result.chars().count() <= 20);
     }
 }
