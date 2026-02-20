@@ -137,6 +137,8 @@ else
                 fi
                 info "checksum verified"
             fi
+        else
+            error "checksum file is empty or malformed — set CCSESH_SKIP_CHECKSUM=1 to bypass"
         fi
     else
         error "could not download checksum file — set CCSESH_SKIP_CHECKSUM=1 to bypass verification"

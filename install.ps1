@@ -84,9 +84,6 @@ try {
             }
             Write-Info "checksum verified"
         } catch {
-            if ($_.Exception.Message -match "checksum mismatch") {
-                throw
-            }
             Write-Err "could not verify checksum -- set CCSESH_SKIP_CHECKSUM=1 to bypass verification"
         }
     }
