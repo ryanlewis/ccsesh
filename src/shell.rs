@@ -40,7 +40,7 @@ pub fn print_resume_instructions(session: &SessionInfo) {
     );
 }
 
-fn is_valid_uuid(s: &str) -> bool {
+pub(crate) fn is_valid_uuid(s: &str) -> bool {
     let bytes = s.as_bytes();
     if bytes.len() != 36 {
         return false;
