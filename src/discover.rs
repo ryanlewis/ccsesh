@@ -35,7 +35,11 @@ pub fn discover_sessions(home_dir: &str, limit: usize) -> Result<Vec<SessionCand
         };
 
         let project_path = project_entry.path();
-        if !project_path.is_dir() {
+        let project_meta = match std::fs::symlink_metadata(&project_path) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+        if project_meta.file_type().is_symlink() || !project_meta.is_dir() {
             continue;
         }
 
