@@ -7,9 +7,9 @@ pub mod types;
 
 #[cfg(test)]
 mod uuid_cross_reference_tests {
-    //! Verify that the two `is_valid_uuid` implementations in `parse.rs` and `shell.rs`
-    //! agree on all test inputs. Both are intentionally duplicated (see CLAUDE.md),
-    //! but they must produce identical results.
+    // Verify that the two `is_valid_uuid` implementations in `parse.rs` and `shell.rs`
+    // agree on all test inputs. Both are intentionally duplicated (see CLAUDE.md),
+    // but they must produce identical results.
 
     const TEST_INPUTS: &[(&str, bool)] = &[
         // Valid UUIDs
@@ -27,7 +27,7 @@ mod uuid_cross_reference_tests {
         ("gb53d999-8692-42ce-a376-4f82206a086d", false),
         // Invalid: wrong separators
         ("eb53d999_8692_42ce_a376_4f82206a086d", false),
-        // Invalid: wrong length and no hyphens
+        // Invalid: wrong length (34 chars, rejected before hyphen check)
         ("eb53d99986924f82206a086da376a376aa", false),
         // Invalid: empty
         ("", false),
