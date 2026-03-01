@@ -53,6 +53,7 @@ fn fixture_to_uuid(name: &str) -> &str {
         "no_cwd.jsonl" => "4b53d999-8692-42ce-a376-4f82206a086d",
         "image_paste.jsonl" => "5b53d999-8692-42ce-a376-4f82206a086d",
         "team_subagent.jsonl" => "6b53d999-8692-42ce-a376-4f82206a086d",
+        "newline_cwd.jsonl" => "7b53d999-8692-42ce-a376-4f82206a086d",
         _ => panic!("Unknown fixture: {}", name),
     }
 }
@@ -273,6 +274,44 @@ fn resume_with_shell_mode() {
         .success()
         .stdout(predicate::str::contains("__CCSESH_EXEC__"))
         .stdout(predicate::str::contains("claude --resume"));
+}
+
+#[test]
+fn resume_shell_mode_newline_cwd_is_safe() {
+    let now = SystemTime::now();
+    let tmp = setup_test_home(&[("-project-a", "newline_cwd.jsonl", now)]);
+
+    // The session should still be listable (cwd rejected, but prompt/slug survive)
+    ccsesh_cmd(&tmp)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Test prompt with newline cwd"));
+
+    // Shell exec output must not leak the malicious cwd fragment
+    let output = ccsesh_cmd(&tmp)
+        .args(["0", "--shell-mode", "fish"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("__CCSESH_EXEC__"),
+        "should emit exec protocol"
+    );
+    assert!(
+        !stdout.contains("malicious"),
+        "newline cwd should be rejected, not passed through"
+    );
+    // The cd command should use the empty fallback path, not contain raw newlines
+    let after_exec: &str = stdout
+        .split("__CCSESH_EXEC__\n")
+        .nth(1)
+        .expect("should have content after __CCSESH_EXEC__");
+    assert!(
+        !after_exec.contains('\n') || after_exec.trim_end().lines().count() == 1,
+        "cd line must not span multiple lines"
+    );
 }
 
 #[test]
