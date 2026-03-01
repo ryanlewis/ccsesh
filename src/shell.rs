@@ -31,13 +31,21 @@ pub fn print_exec_protocol(session: &SessionInfo) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Formats human-readable resume instructions as a string.
+///
+/// Uses `session.project_dir` (the full path) rather than `project_dir_display`
+/// because tilde expansion does not occur inside single-quoted strings.
+pub fn format_resume_instructions(session: &SessionInfo) -> String {
+    let escaped_dir = shell_escape_single_quote(&session.project_dir.to_string_lossy());
+    format!(
+        "To resume this session, run:\n  cd {} && claude --resume {}",
+        escaped_dir, session.session_id
+    )
+}
+
 /// Prints human-readable resume instructions (fallback when --shell-mode is not set).
 pub fn print_resume_instructions(session: &SessionInfo) {
-    println!("To resume this session, run:");
-    println!(
-        "  cd {} && claude --resume {}",
-        session.project_dir_display, session.session_id
-    );
+    println!("{}", format_resume_instructions(session));
 }
 
 pub(crate) fn is_valid_uuid(s: &str) -> bool {
@@ -221,12 +229,54 @@ mod tests {
     }
 
     #[test]
-    fn test_resume_instructions() {
+    fn test_resume_instructions_uses_full_path() {
         let session = make_session(
             "eb53d999-8692-42ce-a376-4f82206a086d",
             "/home/user/project",
             "~/project",
         );
-        print_resume_instructions(&session);
+        let output = format_resume_instructions(&session);
+        // Must use the full path, not the tilde-abbreviated display path,
+        // because tilde expansion does not occur inside single quotes.
+        assert!(
+            output.contains("/home/user/project"),
+            "expected full path in output, got: {output}"
+        );
+        assert!(
+            !output.contains("~/project"),
+            "must not use tilde-abbreviated path: {output}"
+        );
+        assert!(output.contains("claude --resume eb53d999-8692-42ce-a376-4f82206a086d"));
+    }
+
+    #[test]
+    fn test_resume_instructions_path_with_spaces() {
+        let session = make_session(
+            "eb53d999-8692-42ce-a376-4f82206a086d",
+            "/home/user/my project",
+            "~/my project",
+        );
+        let output = format_resume_instructions(&session);
+        // Path with spaces must be wrapped in single quotes
+        assert!(
+            output.contains("'/home/user/my project'"),
+            "expected single-quoted path with spaces, got: {output}"
+        );
+    }
+
+    #[test]
+    fn test_resume_instructions_path_with_single_quotes() {
+        let session = make_session(
+            "eb53d999-8692-42ce-a376-4f82206a086d",
+            "/tmp/it's here",
+            "~/it's here",
+        );
+        let output = format_resume_instructions(&session);
+        // Internal single quotes must be escaped as '\''
+        assert!(
+            output.contains("'\\''"),
+            "expected escaped single quote in output, got: {output}"
+        );
+        assert!(output.contains("/tmp/it"));
     }
 }
