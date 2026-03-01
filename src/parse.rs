@@ -217,7 +217,7 @@ fn extract_session_id(path: &std::path::Path) -> Result<String> {
     Ok(stem.to_string())
 }
 
-fn is_valid_uuid(s: &str) -> bool {
+pub(crate) fn is_valid_uuid(s: &str) -> bool {
     // [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
     let bytes = s.as_bytes();
     if bytes.len() != 36 {
