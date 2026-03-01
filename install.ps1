@@ -70,23 +70,22 @@ try {
     }
 
     # --- Checksum verification ---
-    $ChecksumUrl = "https://github.com/$Repo/releases/download/$Version/$Archive.sha256"
-    try {
-        $ChecksumResponse = Invoke-WebRequest -Uri $ChecksumUrl -UseBasicParsing
-        $Expected = ($ChecksumResponse.Content.Trim() -split '\s+')[0].ToLower()
-        $Actual = (Get-FileHash -Path $ArchivePath -Algorithm SHA256).Hash.ToLower()
+    if ($env:CCSESH_SKIP_CHECKSUM -eq "1") {
+        Write-Warn "checksum verification skipped (CCSESH_SKIP_CHECKSUM=1)"
+    } else {
+        $ChecksumUrl = "https://github.com/$Repo/releases/download/$Version/$Archive.sha256"
+        try {
+            $ChecksumResponse = Invoke-WebRequest -Uri $ChecksumUrl -UseBasicParsing
+            $Expected = ($ChecksumResponse.Content.Trim() -split '\s+')[0].ToLower()
+            $Actual = (Get-FileHash -Path $ArchivePath -Algorithm SHA256).Hash.ToLower()
 
-        if ($Actual -ne $Expected) {
-            Write-Err "checksum mismatch (expected $Expected, got $Actual)"
+            if ($Actual -ne $Expected) {
+                Write-Err "checksum mismatch (expected $Expected, got $Actual)"
+            }
+            Write-Info "checksum verified"
+        } catch {
+            Write-Err "could not verify checksum -- set CCSESH_SKIP_CHECKSUM=1 to bypass verification"
         }
-        Write-Info "checksum verified"
-    } catch [System.Net.WebException] {
-        Write-Warn "could not download checksum file -- skipping verification"
-    } catch {
-        if ($_.Exception.Message -match "checksum mismatch") {
-            throw
-        }
-        Write-Warn "could not verify checksum: $_"
     }
 
     # --- Extract ---
