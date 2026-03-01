@@ -164,39 +164,39 @@ jobs:
           LINUX_X86_64_SHA="${{ steps.checksums.outputs.linux_x86_64 }}"
           LINUX_ARM64_SHA="${{ steps.checksums.outputs.linux_arm64 }}"
           mkdir -p homebrew-tap/Formula
-          cat > homebrew-tap/Formula/ccsesh.rb <<'FORMULA'
-class Ccsesh < Formula
-  desc "List and resume recent Claude Code sessions"
-  homepage "https://github.com/ryanlewis/ccsesh"
-  version "VERSION_PLACEHOLDER"
-  license "MIT"
+          cat > homebrew-tap/Formula/ccsesh.rb <<'EOF'
+          class Ccsesh < Formula
+            desc "List and resume recent Claude Code sessions"
+            homepage "https://github.com/ryanlewis/ccsesh"
+            version "VERSION_PLACEHOLDER"
+            license "MIT"
 
-  on_macos do
-    url "https://github.com/ryanlewis/ccsesh/releases/download/vVERSION_PLACEHOLDER/ccsesh-aarch64-apple-darwin.tar.gz"
-    sha256 "MACOS_ARM64_SHA_PLACEHOLDER"
-  end
+            on_macos do
+              url "https://github.com/ryanlewis/ccsesh/releases/download/vVERSION_PLACEHOLDER/ccsesh-aarch64-apple-darwin.tar.gz"
+              sha256 "MACOS_ARM64_SHA_PLACEHOLDER"
+            end
 
-  on_linux do
-    on_arm do
-      url "https://github.com/ryanlewis/ccsesh/releases/download/vVERSION_PLACEHOLDER/ccsesh-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "LINUX_ARM64_SHA_PLACEHOLDER"
-    end
+            on_linux do
+              on_arm do
+                url "https://github.com/ryanlewis/ccsesh/releases/download/vVERSION_PLACEHOLDER/ccsesh-aarch64-unknown-linux-gnu.tar.gz"
+                sha256 "LINUX_ARM64_SHA_PLACEHOLDER"
+              end
 
-    on_intel do
-      url "https://github.com/ryanlewis/ccsesh/releases/download/vVERSION_PLACEHOLDER/ccsesh-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "LINUX_X86_64_SHA_PLACEHOLDER"
-    end
-  end
+              on_intel do
+                url "https://github.com/ryanlewis/ccsesh/releases/download/vVERSION_PLACEHOLDER/ccsesh-x86_64-unknown-linux-gnu.tar.gz"
+                sha256 "LINUX_X86_64_SHA_PLACEHOLDER"
+              end
+            end
 
-  def install
-    bin.install "ccsesh"
-  end
+            def install
+              bin.install "ccsesh"
+            end
 
-  test do
-    assert_match "ccsesh", shell_output("#{bin}/ccsesh --help")
-  end
-end
-FORMULA
+            test do
+              assert_match "ccsesh", shell_output("#{bin}/ccsesh --help")
+            end
+          end
+          EOF
           sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" homebrew-tap/Formula/ccsesh.rb
           sed -i "s/MACOS_ARM64_SHA_PLACEHOLDER/${MACOS_ARM64_SHA}/g" homebrew-tap/Formula/ccsesh.rb
           sed -i "s/LINUX_ARM64_SHA_PLACEHOLDER/${LINUX_ARM64_SHA}/g" homebrew-tap/Formula/ccsesh.rb
