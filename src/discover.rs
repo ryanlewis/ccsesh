@@ -35,7 +35,11 @@ pub fn discover_sessions(home_dir: &str, limit: usize) -> Result<Vec<SessionCand
         };
 
         let project_path = project_entry.path();
-        if !project_path.is_dir() {
+        let project_meta = match std::fs::symlink_metadata(&project_path) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+        if project_meta.file_type().is_symlink() || !project_meta.is_dir() {
             continue;
         }
 
@@ -56,12 +60,12 @@ pub fn discover_sessions(home_dir: &str, limit: usize) -> Result<Vec<SessionCand
                 continue;
             }
 
-            let metadata = match file_path.metadata() {
+            let metadata = match file_path.symlink_metadata() {
                 Ok(m) => m,
                 Err(_) => continue,
             };
 
-            if !metadata.is_file() {
+            if metadata.file_type().is_symlink() || !metadata.is_file() {
                 continue;
             }
 
@@ -257,6 +261,58 @@ mod tests {
         // Most recent first (b1 from project-b).
         assert_eq!(result[0].path.file_name().unwrap(), "b1.jsonl");
         assert_eq!(result[1].path.file_name().unwrap(), "a1.jsonl");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinks_to_jsonl_files_skipped() {
+        use std::os::unix::fs as unix_fs;
+
+        let tmp = assert_fs::TempDir::new().unwrap();
+        let projects = setup_projects_dir(tmp.path());
+        let project = projects.join("my-project");
+        fs::create_dir_all(&project).unwrap();
+
+        // Create a real JSONL file outside the project tree
+        let outside = tmp.path().join("outside.jsonl");
+        fs::write(&outside, "{}").unwrap();
+
+        // Symlink from inside project to outside
+        unix_fs::symlink(&outside, project.join("symlinked.jsonl")).unwrap();
+
+        // Also create a real file to ensure discovery still works
+        fs::write(project.join("real.jsonl"), "{}").unwrap();
+
+        let result = discover_sessions(tmp.path().to_str().unwrap(), 10).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].path.file_name().unwrap(), "real.jsonl");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_project_dirs_are_skipped() {
+        use std::os::unix::fs as unix_fs;
+
+        let tmp = assert_fs::TempDir::new().unwrap();
+        let projects = setup_projects_dir(tmp.path());
+
+        // Create a real directory outside the projects tree with a JSONL file inside it
+        let outside_dir = tmp.path().join("outside-project");
+        fs::create_dir_all(&outside_dir).unwrap();
+        fs::write(outside_dir.join("session.jsonl"), "{}").unwrap();
+
+        // Symlink from inside the projects directory pointing to that outside directory
+        unix_fs::symlink(&outside_dir, projects.join("symlinked-project")).unwrap();
+
+        // Also create a real project directory to ensure discovery still works
+        let real_project = projects.join("real-project");
+        fs::create_dir_all(&real_project).unwrap();
+        fs::write(real_project.join("real.jsonl"), "{}").unwrap();
+
+        let result = discover_sessions(tmp.path().to_str().unwrap(), 10).unwrap();
+        // Only the real project's file should be discovered; the symlinked directory is skipped
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].path.file_name().unwrap(), "real.jsonl");
     }
 
     #[cfg(unix)]
