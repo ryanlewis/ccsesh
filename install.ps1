@@ -128,6 +128,21 @@ try {
         Write-Warn "$InstallDir was not in your PATH -- it has been added (restart your terminal to pick it up)"
     }
 
+    # --- Shell integration info ---
+    Write-Host ""
+    Write-Host "  Shell integration" -ForegroundColor White
+    Write-Host "  ccsesh works best with a shell wrapper that handles directory"
+    Write-Host "  changes when resuming sessions. PowerShell wrapper support is"
+    Write-Host "  planned for a future release."
+    Write-Host ""
+    Write-Host "  For now, use WSL or Git Bash with shell integration:"
+    Write-Host "    Fish  → mkdir -p ~/.config/fish/conf.d && echo 'ccsesh init fish | source' >> ~/.config/fish/conf.d/ccsesh.fish" -ForegroundColor Cyan
+    Write-Host "    Bash  → echo 'eval `"`$(ccsesh init bash)`"' >> ~/.bashrc" -ForegroundColor Cyan
+    Write-Host "    Zsh   → echo 'eval `"`$(ccsesh init zsh)`"' >> ~/.zshrc" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  See docs/shell-integration.md for more details."
+    Write-Host ""
+
     Write-Info "run 'ccsesh' to get started"
 } finally {
     # --- Cleanup ---
