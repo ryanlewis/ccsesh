@@ -10,18 +10,28 @@ pub fn truncate_prompt(prompt: &str, max_chars: usize) -> String {
     if char_count <= max_chars {
         return prompt.to_string();
     }
-    // Find last space before the limit (leaving room for "...")
+
     let limit = max_chars.saturating_sub(3);
+
+    // Find byte offset of character at position `limit`
     let byte_limit = prompt
         .char_indices()
         .nth(limit)
         .map(|(i, _)| i)
         .unwrap_or(prompt.len());
-    if let Some(pos) = prompt[..byte_limit].rfind(' ') {
-        format!("{}...", &prompt[..pos])
+
+    // Search for last space using char_indices (character boundaries only)
+    let truncated = &prompt[..byte_limit];
+    if let Some(last_space_byte) = truncated
+        .char_indices()
+        .rev()
+        .find(|(_, c)| *c == ' ')
+        .map(|(i, _)| i)
+    {
+        format!("{}...", &truncated[..last_space_byte])
     } else {
-        // No space found — hard cut
-        format!("{}...", &prompt[..byte_limit])
+        // No space found — use the full byte_limit (already on char boundary)
+        format!("{}...", truncated)
     }
 }
 
@@ -880,5 +890,14 @@ mod tests {
         let result = truncate_prompt(&s, 20);
         assert!(result.ends_with("..."));
         assert!(result.chars().count() <= 20);
+    }
+
+    #[test]
+    fn truncate_prompt_emoji_at_boundary_no_panic() {
+        // Issue #27 regression test: 68 ASCII + 4-byte emoji at truncation point
+        let s = format!("{}🌍 world", "a".repeat(68));
+        let result = truncate_prompt(&s, 72);
+        assert!(result.ends_with("..."));
+        assert!(result.chars().count() <= 72);
     }
 }
