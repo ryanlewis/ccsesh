@@ -182,4 +182,73 @@ case ":${PATH}:" in
         ;;
 esac
 
+# --- Shell integration setup ---
+_shell_name=$(basename "${SHELL:-/bin/sh}")
+
+# Detect shell integration auto-setup request
+if [ "${CCSESH_SHELL_INIT:-}" = "1" ]; then
+    case "${_shell_name}" in
+        fish)
+            _config_dir="${HOME}/.config/fish/conf.d"
+            _config_file="${_config_dir}/ccsesh.fish"
+            mkdir -p "${_config_dir}"
+            if ! grep -q "ccsesh init fish" "${_config_file}" 2>/dev/null; then
+                echo "ccsesh init fish | source" >> "${_config_file}"
+                info "shell integration configured in ${_config_file}"
+            else
+                info "shell integration already present in ${_config_file}"
+            fi
+            ;;
+        bash)
+            _config_file="${HOME}/.bashrc"
+            if ! grep -q "ccsesh init bash" "${_config_file}" 2>/dev/null; then
+                echo 'eval "$(ccsesh init bash)"' >> "${_config_file}"
+                info "shell integration configured in ${_config_file}"
+            else
+                info "shell integration already present in ${_config_file}"
+            fi
+            ;;
+        zsh)
+            _config_file="${HOME}/.zshrc"
+            if ! grep -q "ccsesh init zsh" "${_config_file}" 2>/dev/null; then
+                echo 'eval "$(ccsesh init zsh)"' >> "${_config_file}"
+                info "shell integration configured in ${_config_file}"
+            else
+                info "shell integration already present in ${_config_file}"
+            fi
+            ;;
+        *)
+            warn "could not auto-configure shell integration for ${_shell_name}"
+            ;;
+    esac
+    printf "\n  ${GREEN}✓${RESET} Restart your shell to activate the wrapper.\n\n"
+else
+    # Print manual setup instructions
+    printf "\n"
+    printf "  ${BOLD}Shell integration (recommended)${RESET}\n"
+    printf "  ccsesh works best with a shell wrapper that handles directory\n"
+    printf "  changes when resuming sessions. Add this to your shell config:\n\n"
+
+    case "${_shell_name}" in
+        fish)
+            printf "    ${BOLD}Fish${RESET}  → mkdir -p ~/.config/fish/conf.d && echo 'ccsesh init fish | source' >> ~/.config/fish/conf.d/ccsesh.fish\n"
+            ;;
+        bash)
+            printf "    ${BOLD}Bash${RESET}  → echo 'eval \"\$(ccsesh init bash)\"' >> ~/.bashrc\n"
+            ;;
+        zsh)
+            printf "    ${BOLD}Zsh${RESET}   → echo 'eval \"\$(ccsesh init zsh)\"' >> ~/.zshrc\n"
+            ;;
+        *)
+            # Show all three options if shell is unknown
+            printf "    ${BOLD}Fish${RESET}  → mkdir -p ~/.config/fish/conf.d && echo 'ccsesh init fish | source' >> ~/.config/fish/conf.d/ccsesh.fish\n"
+            printf "    ${BOLD}Bash${RESET}  → echo 'eval \"\$(ccsesh init bash)\"' >> ~/.bashrc\n"
+            printf "    ${BOLD}Zsh${RESET}   → echo 'eval \"\$(ccsesh init zsh)\"' >> ~/.zshrc\n"
+            ;;
+    esac
+
+    printf "\n  Then restart your shell or source the config file.\n"
+    printf "  To auto-configure, re-run with: ${BOLD}CCSESH_SHELL_INIT=1${RESET}\n\n"
+fi
+
 info "run 'ccsesh' to get started"
