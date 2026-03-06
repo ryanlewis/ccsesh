@@ -81,8 +81,11 @@ const FISH_TEMPLATE: &str = r#"function ccsesh
         end
     end
     if test $exec_idx -gt 0
-        for i in (seq (math $exec_idx + 1) (count $output))
-            eval $output[$i]
+        set -l exec_start (math $exec_idx + 1)
+        if test $exec_start -le (count $output)
+            for i in (seq $exec_start (count $output))
+                eval $output[$i]
+            end
         end
     else
         printf '%s\n' $output
