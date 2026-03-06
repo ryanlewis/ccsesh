@@ -81,8 +81,11 @@ const FISH_TEMPLATE: &str = r#"function ccsesh
         end
     end
     if test $exec_idx -gt 0
-        for i in (seq (math $exec_idx + 1) (count $output))
-            eval $output[$i]
+        set -l exec_start (math $exec_idx + 1)
+        if test $exec_start -le (count $output)
+            for i in (seq $exec_start (count $output))
+                eval $output[$i]
+            end
         end
     else
         printf '%s\n' $output
@@ -175,6 +178,20 @@ mod tests {
         assert!(FISH_TEMPLATE.contains("function ccsesh"));
         assert!(FISH_TEMPLATE.contains("__CCSESH_EXEC__"));
         assert!(FISH_TEMPLATE.contains("--shell-mode fish"));
+    }
+
+    #[test]
+    fn test_fish_template_has_bounds_check() {
+        // Verify the Fish template includes bounds checking before iterating
+        // over exec commands to prevent index out of bounds errors
+        assert!(
+            FISH_TEMPLATE.contains("if test $exec_start -le (count $output)"),
+            "Fish template must check array bounds before iteration"
+        );
+        assert!(
+            FISH_TEMPLATE.contains("set -l exec_start (math $exec_idx + 1)"),
+            "Fish template must calculate exec_start before bounds check"
+        );
     }
 
     #[test]
