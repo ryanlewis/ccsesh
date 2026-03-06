@@ -181,6 +181,20 @@ mod tests {
     }
 
     #[test]
+    fn test_fish_template_has_bounds_check() {
+        // Verify the Fish template includes bounds checking before iterating
+        // over exec commands to prevent index out of bounds errors
+        assert!(
+            FISH_TEMPLATE.contains("if test $exec_start -le (count $output)"),
+            "Fish template must check array bounds before iteration"
+        );
+        assert!(
+            FISH_TEMPLATE.contains("set -l exec_start (math $exec_idx + 1)"),
+            "Fish template must calculate exec_start before bounds check"
+        );
+    }
+
+    #[test]
     fn test_bash_template_content() {
         assert!(BASH_TEMPLATE.contains("ccsesh()"));
         assert!(BASH_TEMPLATE.contains("__CCSESH_EXEC__"));
