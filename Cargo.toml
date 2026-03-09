@@ -14,6 +14,8 @@ owo-colors = { version = "4", features = ["supports-colors"] }
 chrono = { version = "0.4", features = ["clock", "serde"] }
 thiserror = "2"
 anyhow = "1"
+crossterm = "0.28"
+ctrlc = "3"
 
 [dev-dependencies]
 assert_cmd = "2"
