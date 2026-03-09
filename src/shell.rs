@@ -48,6 +48,8 @@ pub fn print_resume_instructions(session: &SessionInfo) {
     println!("{}", format_resume_instructions(session));
 }
 
+// SECURITY: Duplicated from parse.rs. Must remain identical in behavior.
+// If you modify this, update parse.rs and run uuid_cross_reference_tests.
 pub(crate) fn is_valid_uuid(s: &str) -> bool {
     let bytes = s.as_bytes();
     if bytes.len() != 36 {

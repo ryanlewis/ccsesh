@@ -217,6 +217,8 @@ fn extract_session_id(path: &std::path::Path) -> Result<String> {
     Ok(stem.to_string())
 }
 
+// SECURITY: Duplicated in shell.rs for defense-in-depth.
+// If you modify this, update shell.rs and run uuid_cross_reference_tests.
 pub(crate) fn is_valid_uuid(s: &str) -> bool {
     // [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
     let bytes = s.as_bytes();
