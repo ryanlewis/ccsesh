@@ -4,6 +4,7 @@ use anyhow::Result;
 use chrono::Utc;
 use clap::Parser;
 
+use ccsesh::config;
 use ccsesh::discover;
 use ccsesh::display;
 use ccsesh::errors::CcseshError;
@@ -15,7 +16,8 @@ use ccsesh::types::{OutputFormat, SessionInfo};
 #[command(
     name = "ccsesh",
     version,
-    about = "List and resume recent Claude Code sessions"
+    about = "List and resume recent Claude Code sessions",
+    after_help = "Config file: ~/.config/ccsesh/config.toml"
 )]
 struct Cli {
     /// Session index to resume, or "init" subcommand
@@ -24,11 +26,11 @@ struct Cli {
     /// Shell type for init (fish, bash, zsh)
     shell: Option<String>,
 
-    #[arg(short, long, default_value_t = 5)]
-    limit: usize,
+    #[arg(short, long)]
+    limit: Option<usize>,
 
-    #[arg(long, default_value = "default")]
-    format: OutputFormat,
+    #[arg(long)]
+    format: Option<OutputFormat>,
 
     #[arg(long)]
     json: bool,
@@ -77,7 +79,37 @@ fn load_sessions(home_dir: &str, limit: usize) -> Result<Vec<SessionInfo>> {
 }
 
 fn run() -> Result<()> {
-    let cli = Cli::parse();
+    let config = config::load_config();
+
+    // Build effective args: prepend default_args from config before CLI args.
+    // Skip argv[0] (the binary name), prepend config args, then append real args.
+    let real_args: Vec<String> = std::env::args().collect();
+    let mut effective_args = vec![real_args[0].clone()];
+    if let Some(ref default_args) = config.default_args {
+        effective_args.extend(default_args.iter().cloned());
+    }
+    effective_args.extend(real_args.into_iter().skip(1));
+
+    let cli = Cli::parse_from(&effective_args);
+
+    // Merge: CLI > config > defaults
+    let limit = cli.limit.or(config.limit).unwrap_or(5);
+    let format = cli.format.unwrap_or(OutputFormat::Default);
+
+    // Apply color override from config (if set).
+    // SAFETY: This runs single-threaded at startup before any other threads are spawned.
+    if let Some(ref color_setting) = config.colors {
+        match color_setting {
+            config::ColorSetting::Always => unsafe {
+                std::env::remove_var("NO_COLOR");
+                std::env::set_var("FORCE_COLOR", "1");
+            },
+            config::ColorSetting::Never => unsafe {
+                std::env::set_var("NO_COLOR", "1");
+            },
+            config::ColorSetting::Auto => {}
+        }
+    }
 
     let home_dir = std::env::var("HOME").map_err(|_| CcseshError::HomeDirectoryNotFound)?;
 
@@ -89,13 +121,13 @@ fn run() -> Result<()> {
                 );
             }
 
-            let sessions = load_sessions(&home_dir, cli.limit)?;
+            let sessions = load_sessions(&home_dir, limit)?;
 
             let now = Utc::now();
             let output = if cli.json {
                 display::format_json(&sessions, now)
             } else {
-                match cli.format {
+                match format {
                     OutputFormat::Short => display::format_short(&sessions, now),
                     OutputFormat::Default => display::format_default(&sessions, now),
                 }
@@ -118,7 +150,7 @@ fn run() -> Result<()> {
                 )
             })?;
 
-            let sessions = load_sessions(&home_dir, cli.limit)?;
+            let sessions = load_sessions(&home_dir, limit)?;
 
             if index >= sessions.len() {
                 let max = sessions.len() - 1;
