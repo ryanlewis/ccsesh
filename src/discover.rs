@@ -81,7 +81,7 @@ pub fn discover_sessions(home_dir: &str, limit: usize) -> Result<Vec<SessionCand
         }
     }
 
-    candidates.sort_by(|a, b| b.mtime.cmp(&a.mtime));
+    candidates.sort_by_key(|c| std::cmp::Reverse(c.mtime));
     candidates.truncate(limit);
 
     Ok(candidates)
