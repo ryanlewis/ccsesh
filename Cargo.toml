@@ -14,12 +14,15 @@ owo-colors = { version = "4", features = ["supports-colors"] }
 chrono = { version = "0.4", features = ["clock", "serde"] }
 thiserror = "2"
 anyhow = "1"
+toml = "0.8"
+dirs = "6"
 
 [dev-dependencies]
 assert_cmd = "2"
 assert_fs = "1"
 predicates = "3"
 criterion = "0.8"
+tempfile = "3"
 
 [[bench]]
 name = "internals"
